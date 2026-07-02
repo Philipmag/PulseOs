@@ -4,6 +4,7 @@ import { PrismaModule } from "./prisma/prisma.module.js";
 import { CryptoModule } from "./crypto/crypto.module.js";
 import { AiModule } from "./ai/ai.module.js";
 import { HealthModule } from "./health/health.module.js";
+import { BrandsModule } from "./brands/brands.module.js";
 
 /**
  * Root module. Global foundational modules (config, prisma, crypto, ai) are
@@ -11,6 +12,13 @@ import { HealthModule } from "./health/health.module.js";
  * added as each Phase 2 module is built.
  */
 @Module({
-  imports: [ConfigModule, PrismaModule, CryptoModule, AiModule, HealthModule],
+  imports: [
+    ConfigModule,
+    PrismaModule,
+    CryptoModule,
+    AiModule,
+    HealthModule,
+    BrandsModule,
+  ],
 })
 export class AppModule {}

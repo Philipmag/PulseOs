@@ -1,0 +1,367 @@
+// PulseOS database schema — Phase 1.
+// Translated faithfully from the SQL specification.
+// Conventions from spec: UUID PKs, UTC timestamps, soft deletes on user-owned entities.
+//
+// pgvector is enabled via the `postgresqlExtensions` preview feature. The embedding
+// column and its ANN index are managed by a raw SQL migration (see prisma/migrations/),
+// because Prisma cannot yet express `vector(n)` columns or ivfflat/hnsw indexes natively.
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
+}
+
+datasource db {
+  provider   = "postgresql"
+  url        = env("DATABASE_URL")
+  extensions = [pgvector(map: "vector")]
+}
+
+// ─────────────────────────── ACCOUNTS & BILLING ───────────────────────────
+
+model User {
+  id                   String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  clerkUserId          String    @unique @map("clerk_user_id")
+  email                String    @unique
+  name                 String?
+  planTier             String    @default("starter") @map("plan_tier") // starter | growth | agency | trial
+  stripeCustomerId     String?   @map("stripe_customer_id")
+  stripeSubscriptionId String?   @map("stripe_subscription_id")
+  trialEndsAt          DateTime? @map("trial_ends_at") @db.Timestamptz
+  createdAt            DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt            DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+  deletedAt            DateTime? @map("deleted_at") @db.Timestamptz
+
+  brands Brand[]
+
+  @@map("users")
+}
+
+// ─────────────────────────── BRAND BRAIN (the moat) ───────────────────────────
+
+model Brand {
+  id          String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId      String  @map("user_id") @db.Uuid
+  name        String
+  websiteUrl  String? @map("website_url")
+  industry    String?
+
+  // Structured brand data (onboarding wizard)
+  companyDescription String? @map("company_description") // holds the AI-generated Brand Brain summary
+  products           Json?   // [{name, description, price, cta}]
+  targetAudience     Json?   @map("target_audience") // ICP segments
+  competitors        Json?   // [{name, url, notes}]
+  toneAdjectives     String[] @map("tone_adjectives")
+  mission            String?
+  ctas               Json?   // [{label, url, context}]
+  faqs               Json?   // [{q, a}]
+  objections         Json?   // [{objection, response}]
+
+  // Files and rich media
+  uploadedFileIds String[] @map("uploaded_file_ids") @db.Uuid
+
+  // Analytics memory (updated by the Learning Engine)
+  topPerformingTopics  Json?  @map("top_performing_topics")
+  topPerformingHooks   Json?  @map("top_performing_hooks")
+  topPerformingFormats Json?  @map("top_performing_formats")
+  audiencePainPoints   Json?  @map("audience_pain_points")
+  engagementPatterns   Json?  @map("engagement_patterns")
+  voiceCalibrationScore Float? @map("voice_calibration_score")
+
+  // Brand Brain metadata
+  lastSyncedAt DateTime? @map("last_synced_at") @db.Timestamptz
+  brainVersion Int       @default(1) @map("brain_version")
+
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz
+
+  user                User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  files               BrandFile[]
+  embeddings          BrandEmbedding[]
+  audienceSignals     AudienceSignal[]
+  opportunityScores   OpportunityScore[]
+  strategies          Strategy[]
+  campaigns           Campaign[]
+  contentItems        ContentItem[]
+  platformConnections PlatformConnection[]
+  learningEvents      LearningEvent[]
+  systemJobs          SystemJob[]
+
+  @@index([userId])
+  @@map("brands")
+}
+
+model BrandFile {
+  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  brandId       String   @map("brand_id") @db.Uuid
+  fileName      String   @map("file_name")
+  fileType      String?  @map("file_type") // pdf | docx | txt | png | ...
+  s3Key         String   @map("s3_key")
+  extractedText String?  @map("extracted_text")
+  embeddingIds  String[] @map("embedding_ids") @db.Uuid
+  uploadedAt    DateTime @default(now()) @map("uploaded_at") @db.Timestamptz
+
+  brand Brand @relation(fields: [brandId], references: [id], onDelete: Cascade)
+
+  @@index([brandId])
+  @@map("brand_files")
+}
+
+// The `embedding vector(n)` column and its ANN index are added by raw SQL migration.
+// Prisma represents it as Unsupported so the client stays type-safe elsewhere.
+model BrandEmbedding {
+  id           String                      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  brandId      String                      @map("brand_id") @db.Uuid
+  sourceType   String?                     @map("source_type")
+  // onboarding | file | website | writing_sample | audience_intel | performance_feedback
+  sourceId     String?                     @map("source_id") @db.Uuid
+  contentChunk String                      @map("content_chunk")
+  embedding    Unsupported("vector(1536)")?
+  metadata     Json? // {topic, format, performance_score}
+  createdAt    DateTime                    @default(now()) @map("created_at") @db.Timestamptz
+
+  brand Brand @relation(fields: [brandId], references: [id], onDelete: Cascade)
+
+  @@index([brandId])
+  @@map("brand_embeddings")
+}
+
+// ─────────────────────────── AUDIENCE INTELLIGENCE ───────────────────────────
+
+model AudienceSignal {
+  id                String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  brandId           String    @map("brand_id") @db.Uuid
+  source            String? // reddit | linkedin | x | youtube | hackernews | producthunt | g2 | capterra | amazon | news
+  sourceUrl         String?   @map("source_url")
+  sourceId          String?   @map("source_id") // native platform ID
+  rawContent        String    @map("raw_content")
+
+  // AI extraction results
+  painPoints        String[]  @map("pain_points")
+  questions         String[]
+  frustrations      String[]
+  featureRequests   String[]  @map("feature_requests")
+  buyingObjections  String[]  @map("buying_objections")
+  emotionalLanguage String[]  @map("emotional_language")
+  sentiment         Float? // -1.0 .. 1.0
+  urgencyScore      Float?    @map("urgency_score") // 0.0 .. 1.0
+  frequencyWeight   Float?    @map("frequency_weight")
+  trendDirection    String?   @map("trend_direction") // rising | stable | falling
+
+  topicTags   String[]  @map("topic_tags")
+  fetchedAt   DateTime  @default(now()) @map("fetched_at") @db.Timestamptz
+  processedAt DateTime? @map("processed_at") @db.Timestamptz
+
+  brand Brand @relation(fields: [brandId], references: [id], onDelete: Cascade)
+
+  @@index([brandId, source])
+  @@index([brandId, fetchedAt])
+  @@map("audience_signals")
+}
+
+model OpportunityScore {
+  id               String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  brandId          String    @map("brand_id") @db.Uuid
+  topic            String
+  score            Int? // 0..100 composite
+  scoreComponents  Json?     @map("score_components")
+  // {search_volume, competition, pain_intensity, brand_fit, trend_momentum}
+  suggestedCampaign String?  @map("suggested_campaign")
+  suggestedFormats String[]  @map("suggested_formats")
+  status           String    @default("new") // new | in_progress | completed | dismissed
+  generatedAt      DateTime  @default(now()) @map("generated_at") @db.Timestamptz
+  expiresAt        DateTime? @map("expires_at") @db.Timestamptz
+
+  brand Brand @relation(fields: [brandId], references: [id], onDelete: Cascade)
+
+  @@index([brandId, status])
+  @@map("opportunity_scores")
+}
+
+// ─────────────────────────── STRATEGY ───────────────────────────
+
+model Strategy {
+  id                    String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  brandId               String    @map("brand_id") @db.Uuid
+  periodType            String?   @map("period_type") // 30_day | 90_day
+  periodStart           DateTime? @map("period_start") @db.Date
+  periodEnd             DateTime? @map("period_end") @db.Date
+  goal                  String?
+  targetAudienceSegment String?   @map("target_audience_segment")
+  strategyJson          Json      @map("strategy_json")
+  generationContext     Json?     @map("generation_context")
+  status                String    @default("draft") // draft | active | completed | archived
+  createdAt             DateTime  @default(now()) @map("created_at") @db.Timestamptz
+
+  brand      Brand      @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  campaigns  Campaign[]
+
+  @@index([brandId, status])
+  @@map("strategies")
+}
+
+// ─────────────────────────── CAMPAIGNS ───────────────────────────
+
+model Campaign {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  brandId        String    @map("brand_id") @db.Uuid
+  strategyId     String?   @map("strategy_id") @db.Uuid
+  name           String
+  description    String?
+  goal           String?
+  targetAudience String?   @map("target_audience")
+  startDate      DateTime? @map("start_date") @db.Date
+  endDate        DateTime? @map("end_date") @db.Date
+  status         String    @default("draft") // draft | generating | ready | active | completed | archived
+  kpis           Json? // {metric: target_value}
+  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz
+
+  brand        Brand         @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  strategy     Strategy?     @relation(fields: [strategyId], references: [id])
+  contentItems ContentItem[]
+
+  @@index([brandId, status])
+  @@map("campaigns")
+}
+
+// ─────────────────────────── CONTENT ───────────────────────────
+
+model ContentItem {
+  id                   String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  brandId              String    @map("brand_id") @db.Uuid
+  campaignId           String?   @map("campaign_id") @db.Uuid
+  contentType          String    @map("content_type")
+  // blog | newsletter | linkedin_post | x_thread | instagram_carousel | tiktok_script
+  // | youtube_script | email | podcast_outline | sales_page | faq | seo_metadata
+  title                String?
+  body                 String?
+  metadata             Json? // format-specific fields
+  generationModel      String?   @map("generation_model")
+  generationPromptHash String?   @map("generation_prompt_hash") // SHA256 of the prompt
+  generationContext    Json?     @map("generation_context")
+  humanEdited          Boolean   @default(false) @map("human_edited")
+  editDelta            Json?     @map("edit_delta")
+  status               String    @default("draft")
+  // generating | draft | approved | scheduled | published | failed
+  scheduledAt          DateTime? @map("scheduled_at") @db.Timestamptz
+  publishedAt          DateTime? @map("published_at") @db.Timestamptz
+  createdAt            DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt            DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+
+  brand           Brand            @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  campaign        Campaign?        @relation(fields: [campaignId], references: [id])
+  publishAttempts PublishAttempt[]
+  snapshots       PerformanceSnapshot[]
+
+  @@index([brandId, status])
+  @@index([campaignId])
+  @@map("content_items")
+}
+
+// ─────────────────────────── PUBLISHING ───────────────────────────
+
+model PlatformConnection {
+  id                  String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  brandId             String    @map("brand_id") @db.Uuid
+  platform            String
+  // linkedin | x | facebook | instagram | tiktok | youtube | wordpress | ghost | beehiiv | medium
+  accessToken         String?   @map("access_token") // AES-256-GCM encrypted at rest
+  refreshToken        String?   @map("refresh_token") // AES-256-GCM encrypted at rest
+  tokenExpiresAt      DateTime? @map("token_expires_at") @db.Timestamptz
+  platformAccountId   String?   @map("platform_account_id")
+  platformAccountName String?   @map("platform_account_name")
+  platformMetadata    Json?     @map("platform_metadata")
+  status              String    @default("active")
+  connectedAt         DateTime  @default(now()) @map("connected_at") @db.Timestamptz
+
+  brand           Brand            @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  publishAttempts PublishAttempt[]
+
+  @@index([brandId, platform])
+  @@map("platform_connections")
+}
+
+model PublishAttempt {
+  id                   String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  contentItemId        String    @map("content_item_id") @db.Uuid
+  platformConnectionId String    @map("platform_connection_id") @db.Uuid
+  platformPostId       String?   @map("platform_post_id")
+  status               String? // pending | published | failed | retrying
+  errorMessage         String?   @map("error_message")
+  attemptNumber        Int       @default(1) @map("attempt_number")
+  attemptedAt          DateTime  @default(now()) @map("attempted_at") @db.Timestamptz
+  publishedAt          DateTime? @map("published_at") @db.Timestamptz
+
+  contentItem        ContentItem        @relation(fields: [contentItemId], references: [id])
+  platformConnection PlatformConnection @relation(fields: [platformConnectionId], references: [id])
+
+  @@index([contentItemId])
+  @@map("publish_attempts")
+}
+
+// ─────────────────────────── ANALYTICS & LEARNING ───────────────────────────
+
+model PerformanceSnapshot {
+  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  contentItemId   String    @map("content_item_id") @db.Uuid
+  platform        String?
+  snapshotAt      DateTime  @default(now()) @map("snapshot_at") @db.Timestamptz
+  views           Int       @default(0)
+  impressions     Int       @default(0)
+  clicks          Int       @default(0)
+  likes           Int       @default(0)
+  comments        Int       @default(0)
+  shares          Int       @default(0)
+  saves           Int       @default(0)
+  ctr             Float? // clicks / impressions
+  engagementRate  Float?    @map("engagement_rate") // (likes+comments+shares) / views
+  performanceTier String?   @map("performance_tier") // top | above_avg | average | below_avg | poor
+  performanceNotes String?  @map("performance_notes")
+  polledAt        DateTime  @default(now()) @map("polled_at") @db.Timestamptz
+
+  contentItem ContentItem @relation(fields: [contentItemId], references: [id])
+
+  @@index([contentItemId, snapshotAt])
+  @@map("performance_snapshots")
+}
+
+model LearningEvent {
+  id             String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  brandId        String   @map("brand_id") @db.Uuid
+  eventType      String?  @map("event_type")
+  // content_published | performance_polled | human_edit | content_approved
+  // | content_rejected | audience_signal_processed
+  entityId       String?  @map("entity_id") @db.Uuid
+  payload        Json?
+  appliedToBrain Boolean  @default(false) @map("applied_to_brain")
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  brand Brand @relation(fields: [brandId], references: [id], onDelete: Cascade)
+
+  @@index([brandId, eventType])
+  @@index([appliedToBrain])
+  @@map("learning_events")
+}
+
+model SystemJob {
+  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  brandId     String?   @map("brand_id") @db.Uuid
+  jobType     String    @map("job_type")
+  // audience_research | opportunity_scoring | strategy_generation | content_generation
+  // | publish_content | poll_analytics | brand_brain_update
+  status      String    @default("pending") // pending | running | completed | failed | cancelled
+  input       Json?
+  output      Json?
+  error       String?
+  progress    Int       @default(0) // 0..100
+  startedAt   DateTime? @map("started_at") @db.Timestamptz
+  completedAt DateTime? @map("completed_at") @db.Timestamptz
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz
+
+  brand Brand? @relation(fields: [brandId], references: [id])
+
+  @@index([brandId, status])
+  @@index([jobType, status])
+  @@map("system_jobs")
+}

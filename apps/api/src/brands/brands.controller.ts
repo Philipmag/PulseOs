@@ -1,7 +1,16 @@
-import { Body, Controller, Get, Param, Post, Put } from "@nestjs/common";
+import {
+  Body,
+  Controller,
+  Get,
+  HttpCode,
+  Param,
+  Post,
+  Put,
+} from "@nestjs/common";
 import { ZodValidationPipe } from "../common/validation/zod-validation.pipe.js";
 import { BrandsService } from "./brands.service.js";
 import { BrandBrainService } from "./brand-brain.service.js";
+import { BrandBrainQueueService } from "../queue/brand-brain-queue.service.js";
 import {
   createBrandSchema,
   updateBrandSchema,
@@ -24,6 +33,7 @@ export class BrandsController {
   constructor(
     private readonly brands: BrandsService,
     private readonly brain: BrandBrainService,
+    private readonly buildQueue: BrandBrainQueueService,
   ) {}
 
   @Post()
@@ -51,5 +61,14 @@ export class BrandsController {
   @Get(":id/brain-health")
   brainHealth(@Param("id") id: string) {
     return this.brain.computeBrainHealth(id);
+  }
+
+  /** Re-scan website + rebuild the Brand Brain (enqueues a worker job). */
+  @Post(":id/sync")
+  @HttpCode(202)
+  async sync(@Param("id") id: string) {
+    await this.brands.findOne(id); // 404 if missing
+    const jobId = await this.buildQueue.enqueueBuild(id, false);
+    return { queued: true, jobId };
   }
 }

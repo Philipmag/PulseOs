@@ -5,6 +5,11 @@ import { CryptoModule } from "./crypto/crypto.module.js";
 import { AiModule } from "./ai/ai.module.js";
 import { HealthModule } from "./health/health.module.js";
 import { BrandsModule } from "./brands/brands.module.js";
+import { QueueModule } from "./queue/queue.module.js";
+import { JobsModule } from "./jobs/jobs.module.js";
+import { StorageModule } from "./storage/storage.module.js";
+import { ResearchModule } from "./research/research.module.js";
+import { FilesModule } from "./files/files.module.js";
 
 /**
  * Root module. Global foundational modules (config, prisma, crypto, ai) are
@@ -18,7 +23,12 @@ import { BrandsModule } from "./brands/brands.module.js";
     CryptoModule,
     AiModule,
     HealthModule,
+    QueueModule,
+    StorageModule,
+    ResearchModule,
+    FilesModule,
     BrandsModule,
+    JobsModule,
   ],
 })
 export class AppModule {}

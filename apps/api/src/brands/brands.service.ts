@@ -1,5 +1,5 @@
 import { Injectable, NotFoundException } from "@nestjs/common";
-import { Prisma } from "@pulseos/database";
+import { Prisma, type Brand } from "@pulseos/database";
 import { PrismaService } from "../prisma/prisma.service.js";
 import type { CreateBrandInput, UpdateBrandInput } from "./dto/brand.dto.js";
 
@@ -7,7 +7,7 @@ import type { CreateBrandInput, UpdateBrandInput } from "./dto/brand.dto.js";
 export class BrandsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async create(userId: string, input: CreateBrandInput) {
+  async create(userId: string, input: CreateBrandInput): Promise<Brand> {
     return this.prisma.brand.create({
       data: {
         userId,
@@ -18,7 +18,7 @@ export class BrandsService {
     });
   }
 
-  async findOne(id: string) {
+  async findOne(id: string): Promise<Brand> {
     const brand = await this.prisma.brand.findFirst({
       where: { id, deletedAt: null },
     });
@@ -26,7 +26,7 @@ export class BrandsService {
     return brand;
   }
 
-  async update(id: string, input: UpdateBrandInput) {
+  async update(id: string, input: UpdateBrandInput): Promise<Brand> {
     await this.findOne(id); // 404 if missing/soft-deleted
 
     // Any structured-data update bumps brain_version so the moat's freshness is
@@ -46,7 +46,7 @@ export class BrandsService {
     return this.prisma.brand.update({ where: { id }, data });
   }
 
-  async softDelete(id: string) {
+  async softDelete(id: string): Promise<Brand> {
     await this.findOne(id);
     return this.prisma.brand.update({
       where: { id },

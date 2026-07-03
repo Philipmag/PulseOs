@@ -23,6 +23,8 @@ jobs:
         run: pnpm install --frozen-lockfile
       - name: Generate Prisma client
         run: pnpm --filter @pulseos/database generate
+      - name: Build database package
+        run: pnpm --filter @pulseos/database build
       - name: Typecheck
         id: tc
         continue-on-error: true

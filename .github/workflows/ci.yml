@@ -30,7 +30,12 @@ jobs:
         continue-on-error: true
         run: |
           set -o pipefail
-          pnpm -r typecheck 2>&1 | tee typecheck.log
+          echo "=== packages/database/dist listing ===" | tee typecheck.log
+          ls -la packages/database/dist 2>&1 | tee -a typecheck.log || echo "NO DIST DIR" | tee -a typecheck.log
+          echo "=== database package.json types ===" | tee -a typecheck.log
+          node -e "console.log(require('./packages/database/package.json').types)" | tee -a typecheck.log
+          echo "=== typecheck output ===" | tee -a typecheck.log
+          pnpm -r typecheck 2>&1 | tee -a typecheck.log
       - name: Publish typecheck log on failure
         if: steps.tc.outcome == 'failure'
         run: |

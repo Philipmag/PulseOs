@@ -1,0 +1,43 @@
+Scope: 2 of 3 workspace projects
+packages/database typecheck$ tsc --noEmit
+packages/database typecheck: Done
+apps/api typecheck$ tsc --noEmit
+apps/api typecheck: src/brands/brand-brain.service.ts(2,24): error TS2307: Cannot find module '@pulseos/database' or its corresponding type declarations.
+apps/api typecheck:   There are types at '/home/runner/work/PulseOs/PulseOs/apps/api/node_modules/@pulseos/database/src/index.ts', but this result could not be resolved under your current 'moduleResolution' setting. Consider updating to 'node16', 'nodenext', or 'bundler'.
+apps/api typecheck: src/brands/brand-brain.service.ts(56,37): error TS2339: Property 'brand' does not exist on type 'PrismaService'.
+apps/api typecheck: src/brands/brand-brain.service.ts(115,36): error TS2339: Property '$queryRaw' does not exist on type 'PrismaService'.
+apps/api typecheck: src/brands/brand-brain.service.ts(125,22): error TS7006: Parameter 'r' implicitly has an 'any' type.
+apps/api typecheck: src/brands/brand-brain.service.ts(155,39): error TS2339: Property '$queryRaw' does not exist on type 'PrismaService'.
+apps/api typecheck: src/brands/brand-brain.service.ts(182,37): error TS2339: Property 'brand' does not exist on type 'PrismaService'.
+apps/api typecheck: src/brands/brand-brain.service.ts(187,46): error TS2339: Property 'brandEmbedding' does not exist on type 'PrismaService'.
+apps/api typecheck: src/brands/brands.service.ts(2,24): error TS2307: Cannot find module '@pulseos/database' or its corresponding type declarations.
+apps/api typecheck:   There are types at '/home/runner/work/PulseOs/PulseOs/apps/api/node_modules/@pulseos/database/src/index.ts', but this result could not be resolved under your current 'moduleResolution' setting. Consider updating to 'node16', 'nodenext', or 'bundler'.
+apps/api typecheck: src/brands/brands.service.ts(11,24): error TS2339: Property 'brand' does not exist on type 'PrismaService'.
+apps/api typecheck: src/brands/brands.service.ts(22,37): error TS2339: Property 'brand' does not exist on type 'PrismaService'.
+apps/api typecheck: src/brands/brands.service.ts(46,24): error TS2339: Property 'brand' does not exist on type 'PrismaService'.
+apps/api typecheck: src/brands/brands.service.ts(51,24): error TS2339: Property 'brand' does not exist on type 'PrismaService'.
+apps/api typecheck: src/files/files.service.ts(23,37): error TS2339: Property 'brand' does not exist on type 'PrismaService'.
+apps/api typecheck: src/files/files.service.ts(31,24): error TS2339: Property 'brandFile' does not exist on type 'PrismaService'.
+apps/api typecheck: src/files/files.service.ts(42,36): error TS2339: Property 'brandFile' does not exist on type 'PrismaService'.
+apps/api typecheck: src/files/files.service.ts(49,25): error TS2339: Property 'brandEmbedding' does not exist on type 'PrismaService'.
+apps/api typecheck: src/files/files.service.ts(53,23): error TS2339: Property 'brandFile' does not exist on type 'PrismaService'.
+apps/api typecheck: src/health/health.controller.ts(12,25): error TS2339: Property '$queryRaw' does not exist on type 'PrismaService'.
+apps/api typecheck: src/jobs/brand-brain-build.processor.ts(46,39): error TS2339: Property 'brand' does not exist on type 'PrismaService'.
+apps/api typecheck: src/jobs/brand-brain-build.processor.ts(67,31): error TS2339: Property 'brand' does not exist on type 'PrismaService'.
+apps/api typecheck: src/jobs/brand-brain-build.processor.ts(81,39): error TS2339: Property 'brandFile' does not exist on type 'PrismaService'.
+apps/api typecheck: src/jobs/brand-brain-build.processor.ts(96,29): error TS2339: Property 'brandFile' does not exist on type 'PrismaService'.
+apps/api typecheck: src/jobs/brand-brain-build.processor.ts(134,25): error TS2339: Property 'brand' does not exist on type 'PrismaService'.
+apps/api typecheck: src/jobs/system-jobs.service.ts(2,24): error TS2307: Cannot find module '@pulseos/database' or its corresponding type declarations.
+apps/api typecheck:   There are types at '/home/runner/work/PulseOs/PulseOs/apps/api/node_modules/@pulseos/database/src/index.ts', but this result could not be resolved under your current 'moduleResolution' setting. Consider updating to 'node16', 'nodenext', or 'bundler'.
+apps/api typecheck: src/jobs/system-jobs.service.ts(20,24): error TS2339: Property 'systemJob' does not exist on type 'PrismaService'.
+apps/api typecheck: src/jobs/system-jobs.service.ts(32,24): error TS2339: Property 'systemJob' does not exist on type 'PrismaService'.
+apps/api typecheck: src/jobs/system-jobs.service.ts(39,24): error TS2339: Property 'systemJob' does not exist on type 'PrismaService'.
+apps/api typecheck: src/jobs/system-jobs.service.ts(51,24): error TS2339: Property 'systemJob' does not exist on type 'PrismaService'.
+apps/api typecheck: src/prisma/prisma.service.ts(7,30): error TS2307: Cannot find module '@pulseos/database' or its corresponding type declarations.
+apps/api typecheck:   There are types at '/home/runner/work/PulseOs/PulseOs/apps/api/node_modules/@pulseos/database/src/index.ts', but this result could not be resolved under your current 'moduleResolution' setting. Consider updating to 'node16', 'nodenext', or 'bundler'.
+apps/api typecheck: src/prisma/prisma.service.ts(17,16): error TS2339: Property '$connect' does not exist on type 'PrismaService'.
+apps/api typecheck: src/prisma/prisma.service.ts(22,16): error TS2339: Property '$disconnect' does not exist on type 'PrismaService'.
+apps/api typecheck: Failed
+/home/runner/work/PulseOs/PulseOs/apps/api:
+ ERR_PNPM_RECURSIVE_RUN_FIRST_FAIL  @pulseos/api@0.1.0 typecheck: `tsc --noEmit`
+Exit status 2

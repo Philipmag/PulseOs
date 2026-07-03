@@ -158,7 +158,7 @@ export class BrandBrainService {
             (brand_id, source_type, source_id, content_chunk, embedding, metadata)
           VALUES (
             ${brandId}::uuid, ${sourceType}, ${sourceId ?? null}::uuid,
-            ${chunk}, ${literal}::vector, ${metadata ?? {}}::jsonb
+            ${chunk}, ${literal}::vector, ${JSON.stringify(metadata ?? {})}::jsonb
           )
           RETURNING id
         `,

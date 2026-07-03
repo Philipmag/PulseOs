@@ -58,7 +58,7 @@ export class BrandsService {
 /** Undefined stays undefined (no-op update); arrays become Prisma JSON input. */
 function toJson(
   v: unknown,
-): Prisma.InputJsonValue | Prisma.NullTypes.JsonNull | undefined {
+): Prisma.InputJsonValue | typeof Prisma.JsonNull | undefined {
   if (v === undefined) return undefined;
   if (v === null) return Prisma.JsonNull;
   return v as Prisma.InputJsonValue;

@@ -38,7 +38,7 @@ export class BrandBrainBuildProcessor extends WorkerHost {
   async process(job: Job<BrandBrainBuildPayload>): Promise<{ chunks: number }> {
     const { brandId } = job.data;
     const tracked = await this.jobs.start("brand_brain_update", brandId, {
-      queueJobId: job.id,
+      queueJobId: job.id ?? null,
       initial: job.data.initial,
     });
 
@@ -60,7 +60,7 @@ export class BrandBrainBuildProcessor extends WorkerHost {
               scraped.markdown,
               "website",
               undefined,
-              { url: scraped.url, title: scraped.title },
+              { url: scraped.url, title: scraped.title ?? null },
             );
             chunkCount += ids.length;
             excerpts.push(scraped.markdown);

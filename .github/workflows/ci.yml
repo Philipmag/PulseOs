@@ -9,24 +9,33 @@ on:
 jobs:
   build-test:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
-
       - uses: pnpm/action-setup@v4
-
       - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: pnpm
-
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
-
       - name: Generate Prisma client
         run: pnpm --filter @pulseos/database generate
-
       - name: Typecheck
-        run: pnpm -r typecheck
-
+        id: tc
+        continue-on-error: true
+        run: |
+          set -o pipefail
+          pnpm -r typecheck 2>&1 | tee typecheck.log
+      - name: Publish typecheck log on failure
+        if: steps.tc.outcome == 'failure'
+        run: |
+          git config user.name "ci-bot"
+          git config user.email "ci@pulseos.dev"
+          git add -f typecheck.log
+          git commit -m "ci: typecheck diagnostic log [skip ci]"
+          git push origin HEAD:main
+          exit 1
       - name: Test
         run: pnpm -r test

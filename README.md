@@ -1,5 +1,7 @@
 # PulseOS
 
+[![CI](https://github.com/Philipmag/PulseOs/actions/workflows/ci.yml/badge.svg)](https://github.com/Philipmag/PulseOs/actions/workflows/ci.yml) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
 An AI **Marketing Operating System** for solo founders, indie hackers, SaaS
 startups, agencies, and small B2B companies who need the output of a content team
 without hiring one.

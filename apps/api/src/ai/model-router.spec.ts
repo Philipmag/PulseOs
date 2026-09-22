@@ -13,7 +13,7 @@ describe("ModelRouter.hashPrompt", () => {
 
   it("changes when any message changes", () => {
     const other: ChatMessage[] = [
-      msgs[0],
+      msgs[0]!,
       { role: "user", content: "Write a different plan." },
     ];
     expect(ModelRouter.hashPrompt(msgs)).not.toBe(

@@ -11,7 +11,7 @@ jobs:
   build-test:
     runs-on: ubuntu-latest
     permissions:
-      contents: write
+      contents: read
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -26,24 +26,7 @@ jobs:
       - name: Build database package
         run: pnpm --filter @pulseos/database build
       - name: Typecheck
-        id: tc
-        continue-on-error: true
-        run: |
-          set -o pipefail
-          echo "=== packages/database/dist listing ===" | tee typecheck.log
-          ls -la packages/database/dist 2>&1 | tee -a typecheck.log || echo "NO DIST DIR" | tee -a typecheck.log
-          echo "=== database package.json types ===" | tee -a typecheck.log
-          node -e "console.log(require('./packages/database/package.json').types)" | tee -a typecheck.log
-          echo "=== typecheck output ===" | tee -a typecheck.log
-          pnpm -r typecheck 2>&1 | tee -a typecheck.log
-      - name: Publish typecheck log on failure
-        if: steps.tc.outcome == 'failure'
-        run: |
-          git config user.name "ci-bot"
-          git config user.email "ci@pulseos.dev"
-          git add -f typecheck.log
-          git commit -m "ci: typecheck diagnostic log [skip ci]"
-          git push origin HEAD:main
-          exit 1
+        run: pnpm -r typecheck
+
       - name: Test
         run: pnpm -r test

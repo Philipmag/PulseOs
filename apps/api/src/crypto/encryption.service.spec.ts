@@ -27,7 +27,7 @@ describe("EncryptionService", () => {
     const svc = makeService(key);
     const enc = svc.encrypt("token");
     const [iv, tag, data] = enc.split(".");
-    const flipped = data.slice(0, -2) + (data.slice(-2) === "AA" ? "BB" : "AA");
+    const flipped = data!.slice(0, -2) + (data!.slice(-2) === "AA" ? "BB" : "AA");
     expect(() => svc.decrypt(`${iv}.${tag}.${flipped}`)).toThrow();
   });
 
